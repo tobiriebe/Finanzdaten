@@ -129,6 +129,20 @@ points(rendite_kuka[max_diff_kuka], col = "red", pch = 16)
 #Die Rendite zeigt zwischen 2008 und 2010 größere Ausschläge im Vgl. zu den restlichen Zeitpunkten. 
 #Am 15.08.2015 ist der größte Ausschlag der Zeitreihe zu erkennen, da ein chinesischer Investro eim Übernahmangebot an Kuka unterbreitet hat
 #Es sind keine saisonalen Schwankungen zu erkennen
+max_diff_bayer <- which.max(diff(bayer_data))
+index(diff(bayer_data))[max_diff_bayer]
+bayer_data[c(max_diff_bayer-1, max_diff_bayer, max_diff_bayer+1, max_diff_bayer+2)]
+par(mfrow=c(2,1))
+plot(bayer_data)
+points(bayer_data[max_diff_bayer], col = "red", pch = 16)
+plot(rendite_bayer)
+points(rendite_bayer[max_diff_bayer], col = "red", pch = 16)
+#Die absoluten Werte der Bayer Aktie sinken von 200 bis ca. 2003 und steigen bis ca 2009 leicht an. Nachdem sie bis 200 konstant geblieben sind 
+#folgt  éin stärkerer Anstieg bis 2015, auf welchen ein leichter Abschwung folgte
+#Eine saisonale Schwankung ist nicht nicht zu erkennen.
+#Die Renditen schwanken von 200 bis 2003 stärker als beim Rest der Zeitreihe.
+par(mfrow=c(1,1))
+
 ###################
 #####Aufgabe 2#####
 ###################
@@ -147,7 +161,7 @@ e_hat_bayer <- m_bayer$residuals
 plot(e_hat_bayer)
 #GARCH(1,1)
 m_garch_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka)
-m_grach_bayer <- garchFit(formula = ~garch(1,1), data=rendite_bayer)
+m_grach_bayer <- garchFit(formula = ~garch(1, 1), data=rendite_bayer)
 #Innovationsverteilungen und Spezifikationen der bedingten Varianz
 m_snorm_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snorm", data=rendite_kuka)
 #m_ged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "ged", data=rendite_kuka)
@@ -167,7 +181,7 @@ m_qmle_garch_kuka@fit$objective #6027
 #t-Vtlg und standartisieret t-Vtlg bieten besten fit
 
 #Graphische Veranschaulichung von Value at Risk Coverage (0.01) für norm_GARCH(1,1)
-alpha <- .001
+alpha <- .01
 intv <- coef(m_garch_kuka)[1] + data.frame(lower=qnorm(alpha/2)*m_garch_kuka@sigma.t, upper=qnorm(1-alpha/2)*m_garch_kuka@sigma.t)
 ts.plot(rendite_kuka)
 lines(intv$lower, col=2)
@@ -186,7 +200,7 @@ garchs <- c("norm", "snorm","std",
             "sstd", "QMLE")
 val_at_risk_cov <- bic_garch <-as.numeric(vector(length = length(garchs)))
 for (i in 1:length(garchs)){
-  alpha <- .001
+  alpha <- .01
   garch <- garchFit(formula = ~ garch(1, 1), cond.dist = garchs[i], data=rendite_kuka, trace = FALSE)
   intv <- coef(garch)[1] + data.frame(lower=qnorm(alpha/2)*garch@sigma.t, upper=qnorm(1-alpha/2)*garch@sigma.t)
   which.upper <- which(rendite_kuka > intv$upper)
@@ -209,9 +223,10 @@ bic_garch_kuka #snorm mit niedrigstem bic
 rendite_kuka <- rendite_kuka - mean(rendite_kuka)
 orig <- 4000
 m_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka[1:orig], cond.dist="snorm")
-
-m_kuka
-coef(m_kuka)
 predict(m_kuka)
+ts.plot(rendite_kuka)
+lines(m_kuka@sigma.t, col = "red")
+
+
 #### FÜR BAYER#####
 
