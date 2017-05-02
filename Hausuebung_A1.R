@@ -1,8 +1,8 @@
 #working directory home
-setwd("C:\\Users\\TEMP.TOBIS-PC.000\\Desktop\\Analyse Finanzdaten mit R\\Hausübung")
+setwd("C:\\Users\\TEMP.TOBIS-PC.000\\Desktop\\Analyse Finanzdaten mit R\\HausÃ¼bung")
 getwd()
 
-#Instalieren und laden der benötigten Pakete
+#Instalieren und laden der benÃ¶tigten Pakete
 install.packages("tseries")
 install.packages("zoo")
 install.packages("forecast")
@@ -29,7 +29,7 @@ rendite_bayer <- coredata(rendite_bayer)
 P_bayer <- coredata(bayer_data)
 
 #####Aufgabe 1a#####
-#Funktionen für empirische Schiefe und Kurtosis 
+#Funktionen fÃ¼r empirische Schiefe und Kurtosis 
 skewness <- function(x){
   m <- mean(x)
   sigma <- sd(x)
@@ -44,15 +44,16 @@ kurtosis <- function(x){
 ###Eigenschaften der univariaten unbedingten Verteilungen
 #Rendite plotten
 plot(rendite_kuka)
-abline(0, 0, col = "red") #stationär, Varianz schwankt im Zeitverlauf
+abline(0, 0, col = "red") #stationÃ¤r, Varianz schwankt im Zeitverlauf
 mean(rendite_kuka) #Mittelwert nahe Null
-#Histogram für Rendite mit NV eingezeichnet
-truehist(rendite_kuka) #In der Mitte deutlich mehr Masse, dafür rechts und links der Mitte weniger, fat tails
+#Histogram fÃ¼r Rendite mit NV eingezeichnet
+truehist(rendite_kuka) #In der Mitte deutlich mehr Masse, dafÃ¼r rechts und links der Mitte weniger, fat tails
 xgrid <- seq(-.15, +.15, by=.001)
 lines(xgrid, dnorm(xgrid, mean=mean(rendite_kuka), sd=sd(rendite_kuka)), col=2, lwd=2)
 #Skewness und Kurtosis berechen
-skewness(rendite_kuka) #nahe Null ähnlich wie NV (=0) => tendenziell sym.
+skewness(rendite_kuka) #nahe Null Ã¤hnlich wie NV (=0) => tendenziell sym.
 kurtosis(rendite_kuka) #weiter enfernt von NV(=3) => Vtlg. ist leptokurtisch
+jarque.bera.test(rendite_kuka) #Nullhypthese, dass NV vorliegt wird abgelehnt
 #Quantile empirisch vs. NV
 prob <- seq(.005, .995, by=.005)
 q.emp <- quantile(rendite_kuka, prob=prob)
@@ -64,13 +65,14 @@ abline(0,1) #deutliche Abweichung in den Tails
 plot(rendite_bayer)
 abline(0, 0, col = "red")
 mean(rendite_bayer) 
-#Histogram für Rendite mit NV eingezeichnet
+#Histogram fÃ¼r Rendite mit NV eingezeichnet
 truehist(rendite_bayer) 
 xgrid <- seq(-.15, +.15, by=.001)
 lines(xgrid, dnorm(xgrid, mean=mean(rendite_bayer), sd=sd(rendite_bayer)), col=2, lwd=2)
 #Skewness und Kurtosis berechen
-skewness(rendite_kuka) 
-kurtosis(rendite_kuka)
+skewness(rendite_bayer) 
+kurtosis(rendite_bayer)
+jarque.bera.test(rendite_bayer) #Nullhypthese, dass NV vorliegt wird abgelehnt
 #Quantile empirisch vs. NV
 prob <- seq(.005, .995, by=.005)
 q.emp <- quantile(rendite_bayer, prob=prob)
@@ -80,7 +82,7 @@ abline(0,1)
 
 
 #####Aufgabe 1b#####
-###Zeitliche Abhängigkeitsstruktur der Renditen und von Transformationen der Renditen
+###Zeitliche AbhÃ¤ngigkeitsstruktur der Renditen und von Transformationen der Renditen
 #Autokorrelationsfunktionen von Preis&Renditen&transformierten Renditen
 acf(P_kuka, lag.max = 252) #Starke Autokorrelation der Preise
 acf(rendite_kuka, lag.max = 252, na.action = na.pass) #Autokorrelation der Renditen nahe Null
@@ -95,7 +97,7 @@ acf(abs(rendite_bayer)^2, lag.max = 252, na.action = na.pass)
 
 
 #####Aufgabe 1c#####
-###Abhängigkeiten zwischen den Renditen der beiden Aktien
+###AbhÃ¤ngigkeiten zwischen den Renditen der beiden Aktien
 #Renditenzeitreihen "gleich lang" machen
 Schnittmenge <- intersect(index(bayer_data), index(kuka_data))
 length(Schnittmenge)
@@ -103,7 +105,7 @@ kuka_data <- kuka_data[index(kuka_data) %in% Schnittmenge]
 bayer_data <- bayer_data[index(bayer_data) %in%  Schnittmenge]
 length(kuka_data)
 length(bayer_data)
-#Renditen nach anpassen der Länge
+#Renditen nach anpassen der LÃ¤nge
 rendite_kuka <- diff(kuka_data)/kuka_data[-length(kuka_data)]
 rendite_bayer <- diff(bayer_data)/bayer_data[-length(bayer_data)]
 plot(rendite_kuka, rendite_bayer, pch=16, col=rgb(0,0,1,.4))
@@ -113,6 +115,20 @@ summary(lmod)
 abline(coef(lmod)[1], coef(lmod)[2], lwd=2, col=2)
 cor(as.numeric(rendite_kuka), as.numeric(rendite_bayer))#Positive Korrelation
 
+
+#####Aufgabe 1d######
+max_diff_kuka <- which.max(diff(kuka_data))
+index(diff(kuka_data))[max_diff_kuka]
+kuka_data[c(max_diff_kuka-1, max_diff_kuka, max_diff_kuka+1, max_diff_kuka+2)]
+par(mfrow=c(2,1))
+plot(kuka_data)
+points(kuka_data[max_diff_kuka], col = "red", pch = 16)
+plot(rendite_kuka)
+points(rendite_kuka[max_diff_kuka], col = "red", pch = 16)
+#Die absoluten Werte steigen fÃ¼r die Kuka Aktie ab ca. 2012 deutlich aber kontinuierlich an. Zuvor sind nur geringe Ã„nderungen der absoluten Werte zu erkennen
+#Die Rendite zeigt zwischen 2008 und 2010 grÃ¶ÃŸere AusschlÃ¤ge im Vgl. zu den restlichen Zeitpunkten. 
+#Am 15.08.2015 ist der grÃ¶ÃŸte Ausschlag der Zeitreihe zu erkennen, da ein chinesischer Investro eim Ãœbernahmangebot an Kuka unterbreitet hat
+#Es sind keine saisonalen Schwankungen zu erkennen
 ###################
 #####Aufgabe 2#####
 ###################
@@ -134,14 +150,14 @@ m_garch_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka)
 m_grach_bayer <- garchFit(formula = ~garch(1,1), data=rendite_bayer)
 #Innovationsverteilungen und Spezifikationen der bedingten Varianz
 m_snorm_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snorm", data=rendite_kuka)
-  #m_ged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "ged", data=rendite_kuka)
-  #m_sged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "sged", data=rendite_kuka)
+#m_ged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "ged", data=rendite_kuka)
+#m_sged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "sged", data=rendite_kuka)
 m_std_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "std", data=rendite_kuka)
 m_sstd_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "sstd", data=rendite_kuka)
-  #m_snig_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snig", data=rendite_kuka)
+#m_snig_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snig", data=rendite_kuka)
 m_qmle_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "QMLE", data=rendite_kuka)
 
-######FÜR BAYER######
+######FÃœR BAYER######
 # Vergleich der neg. Log-Likelihoods der GARCH-Modelle
 m_garch_kuka@fit$objective #6027
 m_snorm_garch_kuka@fit$objective #6027
@@ -150,13 +166,13 @@ m_sstd_garch_kuka@fit$objective #5739
 m_qmle_garch_kuka@fit$objective #6027
 #t-Vtlg und standartisieret t-Vtlg bieten besten fit
 
-#Graphische Veranschaulichung von Value at Risk Coverage (0.01) für norm_GARCH(1,1)
+#Graphische Veranschaulichung von Value at Risk Coverage (0.01) fÃ¼r norm_GARCH(1,1)
 alpha <- .001
 intv <- coef(m_garch_kuka)[1] + data.frame(lower=qnorm(alpha/2)*m_garch_kuka@sigma.t, upper=qnorm(1-alpha/2)*m_garch_kuka@sigma.t)
 ts.plot(rendite_kuka)
 lines(intv$lower, col=2)
 lines(intv$upper, col=2)
-#Überdecken die Intervalle die realisierten Renditen tatsächlich mit der eingestellten W'keit?
+#Ãœberdecken die Intervalle die realisierten Renditen tatsÃ¤chlich mit der eingestellten W'keit?
 which.upper <- which(rendite_kuka > intv$upper)
 which.lower <- which(rendite_kuka < intv$lower)
 # Wie viele "Verletzungen" des Intervalls treten auf?
@@ -165,19 +181,19 @@ length(which.upper) + length(which.lower)
 points(which.upper, rendite_kuka[which.upper], pch=16, col=4, cex=1)
 points(which.lower, rendite_kuka[which.lower], pch=16, col=4, cex=1)
 
-#For Schleife für Risk-Cover und BIC der GArchs
+#For Schleife fÃ¼r Risk-Cover und BIC der GArchs
 garchs <- c("norm", "snorm","std",
             "sstd", "QMLE")
 val_at_risk_cov <- bic_garch <-as.numeric(vector(length = length(garchs)))
 for (i in 1:length(garchs)){
-alpha <- .001
-garch <- garchFit(formula = ~ garch(1, 1), cond.dist = garchs[i], data=rendite_kuka, trace = FALSE)
-intv <- coef(garch)[1] + data.frame(lower=qnorm(alpha/2)*garch@sigma.t, upper=qnorm(1-alpha/2)*garch@sigma.t)
-which.upper <- which(rendite_kuka > intv$upper)
-which.lower <- which(rendite_kuka < intv$lower)
-length(which.upper) + length(which.lower)
-val_at_risk_cov[i] <-(length(which.upper) + length(which.lower))/length(rendite_kuka)
-bic_garch[i] <- garch@fit$ics["BIC"]
+  alpha <- .001
+  garch <- garchFit(formula = ~ garch(1, 1), cond.dist = garchs[i], data=rendite_kuka, trace = FALSE)
+  intv <- coef(garch)[1] + data.frame(lower=qnorm(alpha/2)*garch@sigma.t, upper=qnorm(1-alpha/2)*garch@sigma.t)
+  which.upper <- which(rendite_kuka > intv$upper)
+  which.lower <- which(rendite_kuka < intv$lower)
+  length(which.upper) + length(which.lower)
+  val_at_risk_cov[i] <-(length(which.upper) + length(which.lower))/length(rendite_kuka)
+  bic_garch[i] <- garch@fit$ics["BIC"]
 }
 rm(val_at_risk_cov_kuka)
 rm(bic_garch_kuka)
@@ -189,12 +205,13 @@ which.max(bic_garch)
 bic_garch_kuka #snorm mit niedrigstem bic
 
 #####Aufgabe 2c#####
-#Für Kuka Garch(1,1) mit snorm, da niedrigsten BIC
+#FÃ¼r Kuka Garch(1,1) mit snorm, da niedrigsten BIC
 rendite_kuka <- rendite_kuka - mean(rendite_kuka)
 orig <- 4000
 m_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka[1:orig], cond.dist="snorm")
 
+m_kuka
 coef(m_kuka)
 predict(m_kuka)
-#### FÜR BAYER#####
+#### FÃœR BAYER#####
 
