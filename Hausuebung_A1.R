@@ -7,11 +7,13 @@ install.packages("tseries")
 install.packages("zoo")
 install.packages("forecast")
 install.packages("fGarch")
+install.packages("car")
 library(tseries)
 library(zoo)
 library(MASS)
 library(forecast)
 library(fGarch)
+library(car)
 ###################
 #####Aufgabe 1#####
 ###################
@@ -159,9 +161,11 @@ e_hat_kuka <- m_kuka$residuals
 plot(e_hat_kuka)
 e_hat_bayer <- m_bayer$residuals
 plot(e_hat_bayer)
+
 #GARCH(1,1)
+rendite_kuka <- as.numeric(rendite_kuka*100)
 m_garch_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka)
-m_grach_bayer <- garchFit(formula = ~garch(1, 1), data=rendite_bayer)
+m_garch_bayer <- garchFit(formula = ~garch(1, 1), data=rendite_bayer)
 #Innovationsverteilungen und Spezifikationen der bedingten Varianz
 m_snorm_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snorm", data=rendite_kuka)
 #m_ged_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "ged", data=rendite_kuka)
@@ -171,14 +175,32 @@ m_sstd_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "sstd", data=
 #m_snig_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "snig", data=rendite_kuka)
 m_qmle_garch_kuka <- garchFit(formula = ~ garch(1, 1), cond.dist = "QMLE", data=rendite_kuka)
 
-######FÜR BAYER######
-# Vergleich der neg. Log-Likelihoods der GARCH-Modelle
-m_garch_kuka@fit$objective #6027
-m_snorm_garch_kuka@fit$objective #6027
-m_std_garch_kuka@fit$objective #5740
-m_sstd_garch_kuka@fit$objective #5739
-m_qmle_garch_kuka@fit$objective #6027
-#t-Vtlg und standartisieret t-Vtlg bieten besten fit
+#Goodness of fit anhand Residualanalyse (für cond.dist = norm)
+#Residuen
+e_hat_garch_kuka <- m_garch_kuka@residuals
+ts.plot(e_hat_garch_kuka)
+#Korreliertheit?
+acf(e_hat_garch_kuka, na.action = na.pass)
+Box.test(e_hat_garch_kuka, lag=10, type="Ljung-Box")
+#Residuen sind unkorreliert
+acf(e_hat_garch_kuka^2, na.action = na.pass)
+Box.test(e_hat_garch_kuka^2, lag=10, type="Ljung-Box")
+#Quadratisch Residuen sind korreliert
+#Varianz 
+var(e_hat_garch_kuka, na.rm = TRUE)
+#es scheint ein Vrainzcluster in der Mitte der Daten zu existieren
+#Die quadratischen Residuen sind korreliert, was nicht für eine konstanze Varianz spricht
+# Normalverteiltheit
+hist(e_hat_garch_kuka, breaks=100, probability = TRUE)
+xgrid <- seq(-20, 20, by=.01) 
+lines(xgrid, dnorm(xgrid, mean(e_hat_garch_kuka), sd(e_hat_garch_kuka)), col=2, lwd=3)
+# QQ-Plot 
+qqnorm(e_hat_garch_kuka)
+#qqline 
+abline(0,1, col=2)
+jarque.bera.test(e_hat_garch_kuka)
+#Die Residuen sind nicht normalverteilt, Zu viel W'keitsmasse in der Mitte und den Rändern 
+
 
 #Graphische Veranschaulichung von Value at Risk Coverage (0.01) für norm_GARCH(1,1)
 alpha <- .01
@@ -195,38 +217,98 @@ length(which.upper) + length(which.lower)
 points(which.upper, rendite_kuka[which.upper], pch=16, col=4, cex=1)
 points(which.lower, rendite_kuka[which.lower], pch=16, col=4, cex=1)
 
-#For Schleife für Risk-Cover und BIC der GArchs
+#For Schleife für BIC der GArchs
 garchs <- c("norm", "snorm","std",
             "sstd", "QMLE")
-val_at_risk_cov <- bic_garch <-as.numeric(vector(length = length(garchs)))
+bic_garch <-as.numeric(vector(length = length(garchs)))
 for (i in 1:length(garchs)){
   alpha <- .01
   garch <- garchFit(formula = ~ garch(1, 1), cond.dist = garchs[i], data=rendite_kuka, trace = FALSE)
-  intv <- coef(garch)[1] + data.frame(lower=qnorm(alpha/2)*garch@sigma.t, upper=qnorm(1-alpha/2)*garch@sigma.t)
-  which.upper <- which(rendite_kuka > intv$upper)
-  which.lower <- which(rendite_kuka < intv$lower)
-  length(which.upper) + length(which.lower)
-  val_at_risk_cov[i] <-(length(which.upper) + length(which.lower))/length(rendite_kuka)
   bic_garch[i] <- garch@fit$ics["BIC"]
 }
-rm(val_at_risk_cov_kuka)
-rm(bic_garch_kuka)
-val_at_risk_cov_kuka <- rbind(garchs, round((val_at_risk_cov),4))
-which.min(val_at_risk_cov)
-val_at_risk_cov_kuka #std&sstd mit geringstem risk
 bic_garch_kuka <- rbind(garchs, round((bic_garch),4))
-which.max(bic_garch)
-bic_garch_kuka #snorm mit niedrigstem bic
+bic_garch_kuka
+bic_garch_kuka[,which.min(as.numeric(bic_garch))] #std mit niedrigstem bic
 
+
+#######################2C NOCH NICHT FERTIG############################################
+###############################################################
+#############################################################
 #####Aufgabe 2c#####
-#Für Kuka Garch(1,1) mit snorm, da niedrigsten BIC
+#Für Kuka Garch(1,1) mit std, da niedrigsten BIC
 rendite_kuka <- rendite_kuka - mean(rendite_kuka)
 orig <- 4000
-m_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka[1:orig], cond.dist="snorm")
-predict(m_kuka)
+m_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka[1:orig], cond.dist="std")
+coef(m_kuka)
+tail(m_kuka@sigma.t)
+plot(predict(m_kuka, 360))
 ts.plot(rendite_kuka)
 lines(m_kuka@sigma.t, col = "red")
 
 
+# 1-3-Schritt-Prognosen für die verbleibenden Beobachtungen 
+orig <- 4200
+n <- length(rendite_kuka) 
+k <- 0 
+h <- 3
+FCST.exp <- matrix(nrow=n, ncol=h) 
+for(i in orig:(n-3)){ 
+  m <- garchFit(formula = ~ garch(1, 1), data = rendite_kuka[1:i], cond.dist="std", trace = FALSE) # Expanding window 
+  FCST.exp[i,] <- predict(m, h)$meanForecast  
+  SD.exp[i,] <- predict(m, 50)$standardDeviation
+  print(i-orig+1) 
+  k <- k+1 
+} 
+# Expanding Window, 1-step
+fcst1step.exp <- FCST.exp[orig:(n-h),1] # 1-Schritt-Prognosen 
+ts.plot(c(rendite_kuka[1:orig], fcst1step.exp))
+lines()
+truth1step.exp <- rendite_kuka[(orig+1):(n-h+1)] 
+error.exp <- truth1step.exp - fcst1step.exp 
+plot(error.exp)
+boxplot(error.exp)
 #### FÜR BAYER#####
+#########################################################################
+############################################################################
+##############################################################################
 
+#####Aufgabe 2d#####
+rendite_kuka <- rendite_kuka - mean(rendite_kuka)
+orig <- 4000
+m_kuka <- garchFit(formula = ~ garch(1, 1), data=rendite_kuka[1:orig], cond.dist="std")
+garch11.condsim <- function(n, w, a, b, y0, sigma2.t){
+  p <- length(a)
+  q <- length(b)
+  y <- sigma2 <- c()
+  y[1] <- y0 
+  sigma2[1] <- sigma2.t 
+  for(i in 2:n){
+    sigma2[i] <- w + a*y[(i-1)]^2 + b*sigma2[(i-1)]
+    y[i] <- sqrt(sigma2[i])*rnorm(1)
+  }    
+  return(y)
+}
+
+garch.fcst <- function(model, h=2){
+  m <- model  
+  garch11.condsim(n=h, w=coef(m)[2], a=coef(m)[3], b=coef(m)[4], y0=tail(m@data, 1), sigma2.t=tail(m@sigma.t, 1)^2)[h]  
+}
+
+par(mfrow = c(2,1))
+for (i in 2:10){
+sim <- replicate(10000, garch.fcst(m, h=i))
+hist(sim, breaks=100)
+qq.plot(sim)
+print(i)
+}
+x <- rt(1000,4)
+hist(x, breaks = 100)
+lines(x)
+par(mfrow = c(1,1))
+
+###################
+#####Aufgabe 3#####
+###################
+#Aufgabe 3a
+
+     
