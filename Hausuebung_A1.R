@@ -298,7 +298,7 @@ par(mfrow = c(2,1))
 for (i in 2:10){
 sim <- replicate(10000, garch.fcst(m, h=i))
 hist(sim, breaks=100)
-qq.plot(sim)
+qq.plot(sim, distribution = "std")
 print(i)
 }
 x <- rt(1000,4)
@@ -311,4 +311,4 @@ par(mfrow = c(1,1))
 ###################
 #Aufgabe 3a
 
-     
+    
